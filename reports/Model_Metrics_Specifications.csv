@@ -1,0 +1,16 @@
+Cryptocurrency,Model,Algorithm,R_Score,MAPE_Percent,MAE_USD,RMSE_USD,Directional_Accuracy_Percent,Correlation,Training_Samples,Testing_Samples,Cross_Validation_Folds,Scaler,Production_Ready
+Bitcoin,Linear Regression,sklearn.linear_model.LinearRegression,0.9997,0.54,0.02,0.03,91.52,0.9999,~1600,~400,5,StandardScaler,YES
+Tron,Linear Regression,sklearn.linear_model.LinearRegression,0.9993,0.64,0.03,0.06,92.27,0.9997,~1600,~400,5,StandardScaler,YES
+Binance Coin,Linear Regression,sklearn.linear_model.LinearRegression,0.9991,0.70,0.02,0.03,91.93,0.9996,~1600,~400,5,StandardScaler,YES
+Render,Linear Regression,sklearn.linear_model.LinearRegression,0.9992,1.41,0.05,0.07,92.67,0.9996,~1600,~400,5,StandardScaler,YES
+Ethereum,Linear Regression,sklearn.linear_model.LinearRegression,0.9987,1.52,0.02,0.02,88.07,0.9994,~1600,~400,5,StandardScaler,YES
+Solana,Linear Regression,sklearn.linear_model.LinearRegression,0.9970,1.51,0.02,0.03,91.17,0.9985,~1600,~400,5,StandardScaler,YES
+Avalanche,Linear Regression,sklearn.linear_model.LinearRegression,0.9968,7.75,0.01,0.02,91.71,0.9984,~1600,~400,5,StandardScaler,YES
+Axie Infinity,Linear Regression,sklearn.linear_model.LinearRegression,0.9907,0.67,0.00,0.00,80.90,0.9956,~1600,~400,5,StandardScaler,YES
+Fantom,Linear Regression,sklearn.linear_model.LinearRegression,0.9979,14.31,0.01,0.02,92.27,0.9990,~1600,~400,5,StandardScaler,YES
+Chainlink,Linear Regression,sklearn.linear_model.LinearRegression,0.9976,3.25,0.02,0.02,89.92,0.9988,~1600,~400,5,StandardScaler,YES
+Litecoin,Linear Regression,sklearn.linear_model.LinearRegression,0.9977,17.87,0.01,0.01,89.70,0.9989,~1600,~400,5,StandardScaler,YES
+Maker,Linear Regression,sklearn.linear_model.LinearRegression,0.9972,11.46,0.02,0.02,92.24,0.9986,~1600,~400,5,StandardScaler,YES
+Injective,Linear Regression,sklearn.linear_model.LinearRegression,0.9975,15.76,0.02,0.02,94.21,0.9988,~1600,~400,5,StandardScaler,YES
+Toncoin,Linear Regression,sklearn.linear_model.LinearRegression,0.9977,30.00,0.01,0.02,91.19,0.9989,~1600,~400,5,StandardScaler,YES
+The Graph,Linear Regression,sklearn.linear_model.LinearRegression,-0.3555,2.96,0.02,0.03,66.92,0.5119,~1600,~400,5,StandardScaler,NO - Requires Special Treatment

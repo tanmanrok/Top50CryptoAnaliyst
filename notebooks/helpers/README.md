@@ -394,6 +394,337 @@ print(bitcoin_df[['Date', 'Close', 'SMA_20', 'EMA_20', 'RSI_14', 'MACD']].tail(1
 
 ---
 
+## Time Split Module (`time_split.py`)
+
+Time-based train/test split utilities for properly handling time series data.
+
+### Functions Available
+
+#### `split_train_test_time(df, test_size=0.2, date_col="Date")`
+Splits a DataFrame chronologically so the newest rows are the test set.
+
+**Parameters:**
+- `df` (pd.DataFrame): Input DataFrame to split
+- `test_size` (float, default=0.2): Fraction of data to use as test set (0-1)
+- `date_col` (str, default="Date"): Column name containing dates
+
+**Returns:**
+- `train_df` (pd.DataFrame): Training set containing oldest rows
+- `test_df` (pd.DataFrame): Test set containing newest rows
+
+**Features:**
+- Automatically sorts by date if date column exists
+- Ensures proper temporal ordering for time series
+- Validates split index is valid
+
+**Example:**
+```python
+from time_split import split_train_test_time
+import pandas as pd
+
+# Load data
+df = pd.read_csv('bitcoin_data.csv')
+
+# Split 80% train, 20% test
+train, test = split_train_test_time(df, test_size=0.2, date_col='Date')
+print(f"Train size: {len(train)}, Test size: {len(test)}")
+```
+
+#### `split_dataset_dict_time(dataset_dict, test_size=0.2, date_col="Date")`
+Applies time-based split to every DataFrame in a dictionary.
+
+**Parameters:**
+- `dataset_dict` (dict): Dictionary where values are DataFrames to split
+- `test_size` (float, default=0.2): Fraction of data to use as test set
+- `date_col` (str, default="Date"): Column name containing dates
+
+**Returns:**
+- `split_data` (dict): Dictionary with structure `{name: {'train': df_train, 'test': df_test}, ...}`
+
+**Example:**
+```python
+from time_split import split_dataset_dict_time
+
+# Assume crypto_data is a dict of DataFrames
+split_data = split_dataset_dict_time(crypto_data, test_size=0.2)
+
+# Access split data
+bitcoin_train = split_data['bitcoin_cleaned']['train']
+bitcoin_test = split_data['bitcoin_cleaned']['test']
+```
+
+---
+
+## Time Series Analysis Module (`time_series_analysis.py`)
+
+Functions for calculating returns, volatility, trends, and other time series metrics.
+
+### Functions Available
+
+#### `calculate_returns(crypto_data)`
+Calculate daily, weekly, and monthly returns for each cryptocurrency.
+
+**Parameters:**
+- `crypto_data` (dict): Dictionary of DataFrames containing cryptocurrency data
+
+**Returns:**
+- `dict`: Updated crypto_data dictionary with columns added:
+  - `Daily_Return`: Percentage change from previous day
+  - `Weekly_Return`: Percentage change over 7 days
+  - `Monthly_Return`: Percentage change over 30 days
+
+**Example:**
+```python
+from time_series_analysis import calculate_returns
+
+crypto_data = calculate_returns(crypto_data)
+
+# Access returns
+returns = crypto_data['bitcoin_cleaned'][['Date', 'Close', 'Daily_Return', 'Weekly_Return']]
+print(returns.head())
+```
+
+#### `calculate_volatility(crypto_data, window=30)`
+Calculate rolling volatility (standard deviation of returns).
+
+**Parameters:**
+- `crypto_data` (dict): Dictionary of DataFrames containing cryptocurrency data
+- `window` (int, default=30): Rolling window size in days
+
+**Returns:**
+- `dict`: Updated crypto_data dictionary with column `Volatility_{window}` added
+
+**Example:**
+```python
+from time_series_analysis import calculate_volatility
+
+# Calculate 30-day rolling volatility
+crypto_data = calculate_volatility(crypto_data, window=30)
+
+# Calculate 60-day volatility
+crypto_data = calculate_volatility(crypto_data, window=60)
+```
+
+#### `get_volatility_summary(crypto_data, window=30)`
+Generate summary statistics for volatility across all cryptocurrencies.
+
+**Parameters:**
+- `crypto_data` (dict): Dictionary of DataFrames containing cryptocurrency data
+- `window` (int, default=30): Rolling window size in days
+
+**Returns:**
+- `pd.DataFrame`: Summary statistics sorted by mean volatility, with columns:
+  - `Mean_Volatility`: Average volatility across entire period
+  - `Max_Volatility`: Peak volatility observed
+  - `Min_Volatility`: Lowest volatility observed
+  - `Current_Volatility`: Most recent volatility value
+
+**Example:**
+```python
+from time_series_analysis import get_volatility_summary
+
+volatility_summary = get_volatility_summary(crypto_data, window=30)
+print(volatility_summary)
+# Shows: Bitcoin, Ethereum, Cardano ranked by volatility
+```
+
+#### `calculate_trend_analysis(crypto_data)`
+Calculate trend using linear regression for each cryptocurrency.
+
+**Parameters:**
+- `crypto_data` (dict): Dictionary of DataFrames containing cryptocurrency data
+
+**Returns:**
+- `dict`: Updated crypto_data dictionary with trend-related columns added
+
+---
+
+## Model Helpers Module (`model_helpers.py`)
+
+Functions for preparing model predictions and calculating trading performance metrics.
+
+### Functions Available
+
+#### `unscale_predictions(y_pred_scaled, close_price_mean, close_price_std)`
+Convert scaled model predictions back to actual price values.
+
+**IMPORTANT:** The mean and std MUST be from the original (unscaled) training data, NOT from scaled data.
+
+**Parameters:**
+- `y_pred_scaled` (array-like): Scaled predictions from the model (values with mean~0, std~1)
+- `close_price_mean` (float): Mean of Close prices from original training data
+- `close_price_std` (float): Standard deviation of Close prices from original training data
+
+**Returns:**
+- `np.ndarray`: Unscaled predictions in actual dollar amounts
+
+**Formula:**
+```
+unscaled_value = (scaled_value * std) + mean
+```
+
+**Example:**
+```python
+from model_helpers import unscale_predictions
+import numpy as np
+
+# Get original statistics from unscaled training data
+close_mean = unscaled_train_df['Close'].mean()
+close_std = unscaled_train_df['Close'].std()
+
+# Unscale model predictions
+y_pred_unscaled = unscale_predictions(y_pred_scaled, close_mean, close_std)
+print(f"Prediction range: ${y_pred_unscaled.min():.2f} - ${y_pred_unscaled.max():.2f}")
+```
+
+#### `calculate_trading_profit(y_pred_unscaled, open_prices, close_actual=None)`
+Calculate trading profit from unscaled model predictions.
+
+**Strategy:** Buy at market open price each day, sell at model's predicted close price.
+
+**Parameters:**
+- `y_pred_unscaled` (array-like): Unscaled model predictions (actual predicted close prices in $)
+- `open_prices` (array-like): Actual opening prices for each day (entry price)
+- `close_actual` (array-like, optional): Actual closing prices (for reference only)
+
+**Returns:**
+- `dict`: Dictionary containing:
+  - `daily_profits`: Array of daily profits (predicted_close - open_price)
+  - `total_profit`: Sum of all daily profits ($)
+  - `total_return_%`: Total return as percentage of first day's open price
+  - `num_trading_days`: Number of days traded
+  - `mape_error`: Mean Absolute Percentage Error
+  - Additional metrics for performance evaluation
+
+**Example:**
+```python
+from model_helpers import calculate_trading_profit
+
+pred_prices = [100.5, 102.3, 99.8, 103.2]
+open_prices = [99.0, 101.5, 98.5, 102.0]
+
+results = calculate_trading_profit(pred_prices, open_prices)
+print(f"Total Profit: ${results['total_profit']:.2f}")
+print(f"Total Return: {results['total_return_%']:.2f}%")
+print(f"Prediction Error: {results['mape_error']:.2f}%")
+```
+
+---
+
+## P&L Visualization Module (`pnl_visualization.py`)
+
+Functions for visualizing trading model profit and loss performance.
+
+### Functions Available
+
+#### `plot_pnl_comparison(model_daily_pnl, model_cumulative_pnl, bh_baseline, profit_diff, crypto_name, model_name="Linear Regression", figsize=(14, 10))`
+Create a comprehensive P&L visualization comparing model performance vs Buy & Hold baseline.
+
+**Parameters:**
+- `model_daily_pnl` (np.ndarray): Daily profit/loss array for the model trading strategy
+- `model_cumulative_pnl` (np.ndarray): Cumulative profit/loss array
+- `bh_baseline` (float): Total profit from Buy & Hold baseline strategy
+- `profit_diff` (float): Difference between model profit and baseline profit
+- `crypto_name` (str): Name of cryptocurrency being analyzed
+- `model_name` (str, default="Linear Regression"): Model name for chart labels
+- `figsize` (tuple, default=(14, 10)): Figure size (width, height) in inches
+
+**Returns:**
+- `fig` (matplotlib.figure.Figure): The figure object containing both plots
+- `axes` (np.ndarray): Array of axes objects
+
+**Visualizations:**
+- **Top panel:** Cumulative P&L comparison with model vs Buy & Hold traces
+- **Bottom panel:** Daily P&L bar chart with profit/loss color coding
+
+**Example:**
+```python
+from pnl_visualization import plot_pnl_comparison
+import matplotlib.pyplot as plt
+
+fig, axes = plot_pnl_comparison(
+    model_daily_pnl, 
+    model_cumulative_pnl,
+    bh_baseline=50000,
+    profit_diff=13534.68,
+    crypto_name='bitcoin',
+    model_name='Linear Regression'
+)
+plt.show()
+```
+
+#### `print_pnl_summary(model_daily_pnl, model_cumulative_pnl, bh_baseline, profit_diff, crypto_name, model_name="Linear Regression")`
+Print a detailed P&L analysis summary comparing model vs Buy & Hold.
+
+**Parameters:**
+- `model_daily_pnl` (np.ndarray): Daily profit/loss array for the model trading strategy
+- `model_cumulative_pnl` (np.ndarray): Cumulative profit/loss array
+- `bh_baseline` (float): Total profit from Buy & Hold baseline strategy
+- `profit_diff` (float): Difference between model profit and baseline profit
+- `crypto_name` (str): Name of cryptocurrency being analyzed
+- `model_name` (str, default="Linear Regression"): Model name for labels
+
+**Returns:**
+- `None` (Prints summary to console)
+
+**Output includes:**
+- Total profit and return percentage
+- Comparison to Buy & Hold baseline
+- Number of profitable vs losing days
+- Average daily P&L
+- Outperformance metrics
+
+**Example:**
+```python
+from pnl_visualization import print_pnl_summary
+
+print_pnl_summary(
+    model_daily_pnl,
+    model_cumulative_pnl,
+    bh_baseline=50000,
+    profit_diff=13534.68,
+    crypto_name='bitcoin',
+    model_name='Linear Regression'
+)
+
+# Output:
+# ================================================================================
+# P&L Analysis Summary: Linear Regression - BITCOIN
+# ================================================================================
+# Total Profit:                 $13,534.68
+# Total Return:                 27.07%
+# Buy & Hold Baseline:          $50,000.00
+# Model Outperformance:         $13,534.68 (✓ BEAT)
+# Profitable Days:              45/60 (75%)
+# Losing Days:                  15/60 (25%)
+# Average Daily P&L:            $225.58
+```
+
+#### `analyze_and_plot_pnl(model_daily_pnl, model_cumulative_pnl, bh_baseline, profit_diff, crypto_name, model_name="Linear Regression")`
+Combined function that both visualizes and prints P&L analysis summary.
+
+**Parameters:** Same as above two functions
+
+**Returns:**
+- `fig` (matplotlib.figure.Figure): The figure object
+- `axes` (np.ndarray): Array of axes objects
+
+**Example:**
+```python
+from pnl_visualization import analyze_and_plot_pnl
+
+fig, axes = analyze_and_plot_pnl(
+    model_daily_pnl,
+    model_cumulative_pnl,
+    bh_baseline=50000,
+    profit_diff=13534.68,
+    crypto_name='bitcoin'
+)
+plt.show()
+```
+
+---
+
 ## Complete Workflow Example
 
 ```python
@@ -405,315 +736,120 @@ from helpers import (load_data_csv_files, plot_crypto_prices, plot_histograms,
 from indicators import (calculate_sma_ema, plot_sma_ema,
                        calculate_rsi_for_cryptos, plot_rsi,
                        calculate_macd_for_cryptos, plot_macd)
+from time_split import split_dataset_dict_time
+from time_series_analysis import calculate_returns, calculate_volatility, get_volatility_summary
+from model_helpers import unscale_predictions, calculate_trading_profit
+from pnl_visualization import plot_pnl_comparison, print_pnl_summary
 
 # 1. Load data
 crypto_data = load_data_csv_files('../data/interim/')
 print(f"Loaded {len(crypto_data)} cryptocurrencies")
 
-# 2. Data exploration
+# 2. Time-based train/test split
+split_data = split_dataset_dict_time(crypto_data, test_size=0.2)
+
+# 3. Time series analysis
+crypto_data = calculate_returns(crypto_data)
+crypto_data = calculate_volatility(crypto_data, window=30)
+volatility_summary = get_volatility_summary(crypto_data)
+print(volatility_summary)
+
+# 4. Data exploration
 plot_crypto_prices(crypto_data, plot_type='normalized')
 plot_histograms(crypto_data)
 plot_boxplots(crypto_data)
 
-# 3. Correlation analysis
+# 5. Correlation analysis
 corr_matrix = get_correlation_matrix(crypto_data)
 plot_correlation_heatmap(crypto_data)
 
-# 4. Statistical testing
+# 6. Statistical testing
 results = perform_statistical_tests(crypto_data)
 print(results.head(20))
 
-# 5. Technical indicator analysis (on selected cryptos)
+# 7. Technical indicator analysis (on selected cryptos)
 selected = list(crypto_data.keys())[:5]
 crypto_data = calculate_sma_ema(crypto_data, selected_cryptos=selected)
 crypto_data = calculate_rsi_for_cryptos(crypto_data, selected_cryptos=selected)
 crypto_data = calculate_macd_for_cryptos(crypto_data, selected_cryptos=selected)
 
-# 6. Visualize indicators
+# 8. Visualize indicators
 plot_sma_ema(crypto_data, selected_cryptos=selected)
 plot_rsi(crypto_data, selected_cryptos=selected)
 plot_macd(crypto_data, selected_cryptos=selected)
-```
-- `plot_sma_ema(crypto_data, selected_cryptos=None, sma_periods=[7, 20, 50], ema_periods=[7, 20])`
-  - Visualizes price with multiple moving averages
-  - Shows trend identification and smoothing effects
 
-#### RSI Calculation
-- `calculate_rsi(prices, period=14)`
-  - Calculates Relative Strength Index (momentum indicator)
-  - Returns array of RSI values (0-100 range)
-  - >70: Overbought | <30: Oversold
+# 9. Model workflow example
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 
-- `calculate_rsi_for_cryptos(crypto_data, selected_cryptos=None, period=14)`
-  - Wrapper to calculate RSI for multiple cryptocurrencies
-  - Adds RSI column to each DataFrame
+# Get Bitcoin training data
+bitcoin_train = split_data['bitcoin_cleaned']['train']
+bitcoin_test = split_data['bitcoin_cleaned']['test']
 
-#### RSI Plotting
-- `plot_rsi(crypto_data, selected_cryptos=None, period=14)`
-  - Displays price with RSI indicator below
-  - Shows overbought (red) and oversold (green) zones
-  - Signal zones help identify trading opportunities
+# Prepare features and target
+feature_cols = [col for col in bitcoin_train.columns if col not in ['Date', 'Close']]
+X_train = bitcoin_train[feature_cols].values
+y_train = bitcoin_train['Close'].values
+X_test = bitcoin_test[feature_cols].values
+y_test = bitcoin_test['Close'].values
 
-#### MACD Calculation
-- `calculate_macd(prices, fast=12, slow=26, signal=9)`
-  - Calculates Moving Average Convergence Divergence
-  - MACD Line = EMA(12) - EMA(26)
-  - Signal Line = EMA(9) of MACD
-  - Histogram = MACD - Signal (momentum)
-  - Returns (macd_line, signal_line, histogram)
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-- `calculate_macd_for_cryptos(crypto_data, selected_cryptos=None, fast=12, slow=26, signal=9)`
-  - Wrapper to calculate MACD for multiple cryptocurrencies
-  - Adds MACD, MACD_Signal, MACD_Histogram columns
+# Train model
+model = LinearRegression()
+model.fit(X_train_scaled, y_train)
 
-#### MACD Plotting
-- `plot_macd(crypto_data, selected_cryptos=None)`
-  - Displays price with MACD indicator below
-  - Shows MACD line, signal line, and histogram
-  - Histogram bars indicate momentum direction
+# Make predictions
+y_pred_scaled = model.predict(X_test_scaled)
 
-### Usage Example
+# Unscale predictions
+close_mean = bitcoin_train['Close'].mean()
+close_std = bitcoin_train['Close'].std()
+y_pred_unscaled = unscale_predictions(y_pred_scaled, close_mean, close_std)
 
-```python
-import sys
-sys.path.append('./helpers')
-from indicators import (calculate_sma_ema, plot_sma_ema, calculate_rsi_for_cryptos, plot_rsi,
-                        calculate_macd_for_cryptos, plot_macd)
+# Calculate trading profit
+open_prices = bitcoin_test['Open'].values
+results = calculate_trading_profit(y_pred_unscaled, open_prices)
 
-# Calculate and plot moving averages
-crypto_data = calculate_sma_ema(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
-plot_sma_ema(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
+print(f"Model Profit: ${results['total_profit']:.2f}")
+print(f"Model Return: {results['total_return_%']:.2f}%")
 
-# Calculate and plot RSI
-crypto_data = calculate_rsi_for_cryptos(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
-plot_rsi(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
+# 10. Visualize P&L performance
+model_daily_pnl = y_pred_unscaled - open_prices
+model_cumulative_pnl = np.cumsum(model_daily_pnl)
+bh_baseline = bitcoin_test['Close'].iloc[-1] - bitcoin_test['Open'].iloc[0]
+profit_diff = model_cumulative_pnl[-1] - bh_baseline
 
-# Calculate and plot MACD
-crypto_data = calculate_macd_for_cryptos(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
-plot_macd(crypto_data, selected_cryptos=['bitcoin_cleaned', 'ethereum_cleaned'])
-```
+fig, axes = plot_pnl_comparison(
+    model_daily_pnl, 
+    model_cumulative_pnl, 
+    bh_baseline, 
+    profit_diff, 
+    'bitcoin'
+)
+plt.show()
 
-### Indicator Interpretation
-
-| Indicator | Bullish Signal | Bearish Signal | Notes |
-|-----------|---|---|---|
-| **SMA** | Price above MA | Price below MA | Longer MA = stronger trend |
-| **EMA** | Fast EMA > Slow EMA | Fast EMA < Slow EMA | Faster response than SMA |
-| **RSI** | <30 (Oversold) | >70 (Overbought) | Oscillator: identifies extremes |
-| **MACD** | Positive histogram | Negative histogram | Momentum indicator |
-| **MACD Signal** | MACD > Signal | MACD < Signal | Crossovers indicate reversals |
-
----
-
-```python
-import sys
-sys.path.append('./helpers')
-from helpers import (load_data_csv_files, plot_crypto_prices, plot_histograms, 
-                     plot_boxplots, get_correlation_matrix, plot_correlation_heatmap, 
-                     perform_statistical_tests)
-
-# 1. Load data
-crypto_data = load_data_csv_files('../data/interim/')
-
-# 2. Visualize price trends
-plot_crypto_prices(crypto_data, plot_type='normalized')
-
-# 3. Analyze distributions
-plot_histograms(crypto_data)
-plot_boxplots(crypto_data)
-
-# 4. Check correlations
-corr_matrix = get_correlation_matrix(crypto_data)
-plot_correlation_heatmap(crypto_data)
-
-# 5. Run statistical tests
-results = perform_statistical_tests(crypto_data)
-print(results[results['Test Type'] == 'K-S Test'].head())
+# Print summary
+print_pnl_summary(model_daily_pnl, model_cumulative_pnl, 
+                  bh_baseline, profit_diff, 'bitcoin')
 ```
 
 ---
 
-## Time Series Analysis Module (`time_series_analysis.py`)
+## Summary
 
-Comprehensive time series analysis functions for analyzing cryptocurrency trends, volatility, and returns.
+This helpers module provides a comprehensive toolkit for cryptocurrency analysis, including:
 
-### Functions Available
+- **Data Loading & Exploration** - Quick import and visualization of multiple datasets
+- **Statistical Analysis** - Correlation, distributions, and hypothesis testing
+- **Technical Indicators** - SMA, EMA, RSI, MACD calculations and visualizations
+- **Time Series Analysis** - Returns, volatility, and trend calculations
+- **Time-Based Splitting** - Proper temporal train/test splits
+- **Model Development** - Prediction unscaling and trading profit calculations
+- **P&L Visualization** - Comprehensive performance comparison and reporting
 
-#### Return Calculations
-- `calculate_returns(crypto_data)`
-  - Calculates daily, weekly, and monthly percentage returns
-  - Daily_Return: (Price_t - Price_t-1) / Price_t-1 * 100
-  - Weekly_Return: 7-day percentage change
-  - Monthly_Return: 30-day percentage change
-  - Returns updated crypto_data dict with new columns
-
-#### Volatility Calculations
-- `calculate_volatility(crypto_data, window=30)`
-  - Calculates rolling standard deviation of daily returns
-  - Default 30-day rolling window
-  - Volatility_30 column = std dev of Daily_Return over 30 days
-  - Measures price stability/risk
-  - Returns updated crypto_data dict
-
-#### Volatility Summary
-- `get_volatility_summary(crypto_data, window=30)`
-  - Generates summary statistics for volatility
-  - Returns DataFrame with columns:
-    - Mean_Volatility: Average volatility across period
-    - Max_Volatility: Peak volatility (riskiest period)
-    - Min_Volatility: Lowest volatility (calmest period)
-    - Current_Volatility: Latest 30-day rolling volatility
-  - Sorted by mean volatility (highest first)
-
-#### Trend Analysis Using Linear Regression
-- `calculate_trend_analysis(crypto_data)`
-  - Analyzes price trends using linear regression
-  - Returns DataFrame with columns:
-    - Slope: Trend direction/strength (positive=uptrend, negative=downtrend)
-    - Trend: "Uptrend" or "Downtrend" classification
-    - R_squared: Fit quality (0-1, higher = better linear fit)
-    - Start_Price: Opening price of period
-    - End_Price: Closing price of period
-    - Total_Return_%: Overall percentage change
-  - Higher slope = stronger uptrend; more negative = stronger downtrend
-  - R_squared indicates quality of trend (R² > 0.7 = strong trend)
-
-#### Returns Summary
-- `get_returns_summary(crypto_data)`
-  - Comprehensive return statistics for each cryptocurrency
-  - Returns DataFrame with columns:
-    - Mean_Daily_Return_%: Average daily return
-    - Std_Daily_Return_%: Standard deviation of returns (volatility)
-    - Max_Daily_Return_%: Best single day return
-    - Min_Daily_Return_%: Worst single day return
-    - Sharpe_Ratio: Risk-adjusted return (return/volatility)
-    - Positive_Days_%: % of days with positive returns
-  - Sharpe Ratio: Higher = better risk-adjusted returns (> 0.5 is good)
-  - Win Rate: Higher % = more consistency in positive returns
-
-#### Visualization - Price & Volatility
-- `plot_price_and_volatility(crypto_data, crypto_name, trend_analysis=None)`
-  - Creates 2-panel plot for single cryptocurrency:
-    - Panel 1: Price with optional linear regression trend line
-    - Panel 2: Rolling 30-day volatility over time
-  - Shows price stability and trend strength visually
-  - Red dashed trend line indicates trend direction and slope
-
-#### Visualization - Returns Distribution
-- `plot_returns_distribution(crypto_data, num_cryptos=10)`
-  - Creates histogram grid showing daily returns distribution
-  - Displays 5 rows x 2 columns (10 cryptos per grid)
-  - Shows mean return line for each cryptocurrency
-  - Helps identify risk profiles and return characteristics
-
-### Usage Examples
-
-#### Complete Time Series Analysis Workflow
-```python
-import sys
-sys.path.append('./helpers')
-from time_series_analysis import (calculate_returns, calculate_volatility, 
-                                  get_volatility_summary, calculate_trend_analysis, 
-                                  get_returns_summary, plot_price_and_volatility, 
-                                  plot_returns_distribution)
-
-# 1. Calculate returns and volatility
-crypto_data = calculate_returns(crypto_data)
-crypto_data = calculate_volatility(crypto_data, window=30)
-
-# 2. Get volatility statistics
-volatility_df = get_volatility_summary(crypto_data, window=30)
-print("Most volatile cryptocurrencies:")
-print(volatility_df.head(10))
-
-# 3. Analyze trends
-trend_df = calculate_trend_analysis(crypto_data)
-print("\nStrongest uptrends:")
-print(trend_df.sort_values('Slope', ascending=False).head(10))
-
-# 4. Get returns summary
-returns_df = get_returns_summary(crypto_data)
-print("\nBest risk-adjusted returns (Sharpe Ratio):")
-print(returns_df.sort_values('Sharpe_Ratio', ascending=False).head(10))
-
-# 5. Visualize trends
-for crypto_name in list(crypto_data.keys())[:5]:
-    plot_price_and_volatility(crypto_data, crypto_name, trend_df)
-
-# 6. Analyze return distributions
-plot_returns_distribution(crypto_data, num_cryptos=10)
-```
-
-#### Quick Risk Assessment
-```python
-from time_series_analysis import get_volatility_summary, get_returns_summary
-
-# Identify stable vs risky assets
-volatility_df = get_volatility_summary(crypto_data)
-print("Least volatile (most stable):")
-print(volatility_df.nsmallest(5, 'Mean_Volatility'))
-
-print("\nMost volatile (highest risk):")
-print(volatility_df.nlargest(5, 'Mean_Volatility'))
-
-# Find best risk-adjusted returns
-returns_df = get_returns_summary(crypto_data)
-print("\nBest Sharpe ratios (best risk-adjusted returns):")
-print(returns_df.nlargest(5, 'Sharpe_Ratio'))
-```
-
-#### Trend Identification
-```python
-from time_series_analysis import calculate_trend_analysis
-
-trend_df = calculate_trend_analysis(crypto_data)
-
-# Strongest uptrends
-uptrends = trend_df[trend_df['Slope'] > 0].sort_values('Slope', ascending=False)
-print("Top 10 uptrends:")
-print(uptrends.head(10)[['Slope', 'Total_Return_%', 'R_squared']])
-
-# Strongest downtrends
-downtrends = trend_df[trend_df['Slope'] < 0].sort_values('Slope')
-print("\nTop 10 downtrends:")
-print(downtrends.head(10)[['Slope', 'Total_Return_%', 'R_squared']])
-```
-
-### Interpretation Guide
-
-**Volatility Metrics:**
-- Low volatility (<2%): Stable, low risk, lower returns potential
-- Medium volatility (2-5%): Moderate risk/reward
-- High volatility (>5%): High risk, high return potential
-- Current vs Mean: If current > mean = increasing volatility (higher risk)
-
-**Trend Analysis:**
-- Positive slope: Asset in uptrend (positive momentum)
-- Negative slope: Asset in downtrend (negative momentum)
-- R² > 0.7: Strong linear trend (reliable for trend following)
-- R² < 0.3: Weak/noisy trend (less reliable)
-- Steep slope: Strong trend (rapid gains/losses)
-- Shallow slope: Weak trend (slow movement)
-
-**Returns Summary:**
-- Sharpe Ratio > 1.0: Excellent risk-adjusted returns
-- Sharpe Ratio 0.5-1.0: Good risk-adjusted returns
-- Sharpe Ratio 0-0.5: Modest risk-adjusted returns
-- Sharpe Ratio < 0: Negative returns not compensating for risk
-- Win Rate > 50%: More profitable days than losing days
-- Win Rate < 50%: More losing days than profitable days
-
-**Practical Application:**
-```python
-# Identify ideal candidates for trend-following strategy
-good_trends = trend_df[(trend_df['Slope'] > 0) & (trend_df['R_squared'] > 0.7)]
-print(f"Found {len(good_trends)} cryptos with strong uptrends")
-
-# Find best balance of returns and stability
-good_risk_adjusted = returns_df[returns_df['Sharpe_Ratio'] > 0.5]
-print(f"Found {len(good_risk_adjusted)} cryptos with good risk-adjusted returns")
-
-# Identify stable, low-volatility assets
-stable_assets = volatility_df[volatility_df['Mean_Volatility'] < 2.0]
-print(f"Found {len(stable_assets)} stable cryptocurrencies")
-```
+All modules are designed to work together seamlessly for end-to-end cryptocurrency price prediction and analysis workflows.

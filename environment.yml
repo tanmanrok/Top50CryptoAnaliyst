@@ -1,0 +1,37 @@
+name: crypto-analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  # Python
+  - python=3.10
+  
+  # Core Data Science
+  - pandas
+  - numpy
+  - scikit-learn
+  - scipy
+  
+  # Visualization
+  - matplotlib
+  - seaborn
+  
+  # Advanced ML
+  - lightgbm
+  - xgboost
+  
+  # Jupyter
+  - jupyter
+  - jupyterlab
+  - ipykernel
+  
+  # Utilities
+  - python-dateutil
+  - pytz
+  
+  # Optional
+  - pip
+  
+  # Pip dependencies (if not available in conda)
+  - pip:
+    - yfinance
