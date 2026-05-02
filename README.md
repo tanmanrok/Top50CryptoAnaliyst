@@ -1,24 +1,414 @@
-# Top 50 Cryptocurrency Price Prediction
+# Top 50 Cryptocurrency Live Prediction System
 
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-blue.svg)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green)
-[![CCDS](https://img.shields.io/badge/CCDS-Project%20template-328F97?logo=cookiecutter)](https://cookiecutter-data-science.drivendata.org/)
 
-## 🎯 Overview
+## 🎯 Project Overview
 
-This project develops **machine learning models to predict cryptocurrency price movements** using technical indicators and temporal features. The **Linear Regression model** achieved exceptional accuracy across 14 cryptocurrencies with **99.97% R² on Bitcoin** and **90%+ directional accuracy** for trading signals.
+A machine learning system for **real-time cryptocurrency price prediction** combining:
+- ✅ **37,464 historical records** (14 cryptocurrencies, Sep 2014 - May 2026)
+- ✅ **14 technical indicators** (SMA, EMA, RSI, MACD, volatility, returns)
+- ✅ **PostgreSQL database** with 37,464 records loaded
+- ✅ **99.97% R² on Bitcoin** with 90%+ directional accuracy
+- 🔄 **Live data ingestion** (Kraken API)
+- 🔄 **Automated model retraining** pipeline
 
-### ✨ Key Achievements
+---
 
-| Metric | Value | Interpretation |
-|--------|-------|-----------------|
-| **Best R² Score** | 0.9997 (Bitcoin) | Explains 99.97% of price variance |
-| **Average R² Score** | 0.972 | 14/15 cryptos with R² > 0.99 |
-| **Directional Accuracy** | 90.3% | Predicts price direction correctly |
-| **Prediction Error (MAPE)** | 7.8% avg | Highly accurate price forecasts |
-| **Assets Analyzed** | 15 cryptocurrencies | Bitcoin, Ethereum, Solana, etc. |
-| **Features Engineered** | 28 | Technical indicators + temporal patterns |
+## 📊 Current Status
+
+### ✅ Completed Phases
+- **Phase 0:** Foundation & Historical Models (99.97% R²)
+- **Phase 0.5:** Backfill Historical Data (37,464 records)
+- **Phase 1.5:** Database & Storage Setup (PostgreSQL live)
+
+### 🔄 In Progress
+- **Phase 1:** Live Data Ingestion (Kraken API)
+- **Phase 2:** Automated Model Retraining
+- **Phase 3:** Real-time Predictions
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- PostgreSQL 16+
+- Conda/Anaconda
+
+### 1. Set Up Environment
+
+```powershell
+# Activate Conda
+conda activate base
+
+# Verify PostgreSQL
+psql --version
+
+# Check database
+psql -U postgres -d crypto_predictions -c "SELECT COUNT(*) FROM prices;"
+```
+
+### 2. Load Python Dependencies
+
+```powershell
+# Install from requirements.txt
+pip install -r requirements.txt
+
+# Or use Conda
+conda env create -f environment.yml
+conda activate crypto-analysis
+```
+
+### 3. Verify Database Connection
+
+```powershell
+# Test Python connection
+python Code/db_connection.py
+
+# Expected output:
+# ✅ Database connection successful!
+# ✅ Tables created successfully!
+```
+
+---
+
+## 📖 How to Use
+
+### View Cryptocurrency Data
+
+**Check what's in the database:**
+```powershell
+# Total records
+psql -U postgres -d crypto_predictions -c "SELECT COUNT(*) FROM prices;"
+# Output: 37464
+
+# Records per cryptocurrency
+psql -U postgres -d crypto_predictions -c "SELECT cryptocurrency, COUNT(*) FROM prices GROUP BY cryptocurrency ORDER BY cryptocurrency;"
+
+# Date range
+psql -U postgres -d crypto_predictions -c "SELECT MIN(timestamp), MAX(timestamp) FROM prices;"
+# Output: 2014-09-17 | 2026-05-01
+```
+
+### Query with Python
+
+```python
+from Code.db_connection import engine
+import pandas as pd
+
+# Get Bitcoin data
+query = """
+    SELECT * FROM prices 
+    WHERE cryptocurrency='bitcoin'
+    ORDER BY timestamp DESC
+    LIMIT 100
+"""
+df = pd.read_sql(query, engine)
+print(df)
+```
+
+### Explore Technical Indicators
+
+**View processed data with indicators:**
+```python
+import pandas as pd
+
+# Load Bitcoin with indicators
+df = pd.read_csv('data/processed/bitcoin_processed.csv')
+print(df.columns)
+# Columns: open, high, low, close, volume, SMA_7, SMA_20, SMA_50, 
+#          EMA_7, EMA_20, EMA_50, RSI_14, MACD, MACD_Signal, MACD_Histogram,
+#          Daily_Return, Weekly_Return, Monthly_Return, Volatility_30
+
+print(df.head())
+```
+
+### Run Jupyter Notebooks
+
+```powershell
+# Data exploration
+jupyter notebook notebooks/EDA.ipynb
+
+# Model training
+jupyter notebook notebooks/Model.ipynb
+
+# Technical indicators
+jupyter notebook notebooks/UpdateData.ipynb
+```
+
+---
+
+## 🗄️ Database Schema & Data
+
+### Database Overview
+- **Host:** 127.0.0.1:5432
+- **Database:** crypto_predictions
+- **User:** postgres
+- **Total Records:** 37,464
+- **Tables:** prices, predictions, metrics, logs
+
+### `prices` Table Structure
+```sql
+CREATE TABLE prices (
+    id SERIAL PRIMARY KEY,
+    cryptocurrency VARCHAR(50),
+    timestamp TIMESTAMP,
+    open FLOAT,
+    high FLOAT,
+    low FLOAT,
+    close FLOAT,
+    volume FLOAT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(cryptocurrency, timestamp)
+);
+```
+
+### Data Summary by Cryptocurrency
+
+| Cryptocurrency | Records | Start Date | End Date |
+|---|---|---|---|
+| Bitcoin | 4,245 | 2014-09-17 | 2026-05-01 |
+| Litecoin | 4,245 | 2014-09-17 | 2026-05-01 |
+| Ethereum | 3,096 | 2017-11-09 | 2026-05-01 |
+| Binance Coin | 3,096 | 2017-11-09 | 2026-05-01 |
+| Chainlink | 3,096 | 2017-11-09 | 2026-05-01 |
+| Tron | 3,096 | 2017-11-09 | 2026-05-01 |
+| Maker | 3,085 | 2017-11-20 | 2026-05-01 |
+| Solana | 2,213 | 2020-04-10 | 2026-05-01 |
+| Render | 2,136 | 2020-06-11 | 2026-05-01 |
+| Avalanche | 2,050 | 2020-07-13 | 2026-05-01 |
+| Axie Infinity | 2,005 | 2020-11-04 | 2026-05-01 |
+| Injective | 2,019 | 2020-10-21 | 2026-05-01 |
+| Toncoin | 1,709 | 2021-08-27 | 2026-05-01 |
+| The Graph | 1,373 | 2020-06-19 | 2026-05-01 |
+
+---
+
+## 📊 Technical Indicators (14 Total)
+
+All indicators are pre-calculated in `data/processed/` CSV files and in the `notebooks/helpers/indicators_helper.py` module:
+
+### Trend Indicators
+- **SMA_7, SMA_20, SMA_50:** Simple Moving Averages
+- **EMA_7, EMA_20, EMA_50:** Exponential Moving Averages
+- **MACD, MACD_Signal, MACD_Histogram:** Moving Average Convergence Divergence
+
+### Momentum & Volatility
+- **RSI_14:** Relative Strength Index
+- **Daily_Return:** Daily percentage change
+- **Weekly_Return:** Weekly percentage change
+- **Monthly_Return:** Monthly percentage change
+- **Volatility_30:** 30-day rolling standard deviation
+
+**Usage:**
+```python
+from notebooks.helpers.indicators_helper import add_technical_indicators, validate_indicators
+
+# Calculate indicators if needed
+df = add_technical_indicators(df_raw)
+
+# Validate data quality
+validate_indicators(df, 'bitcoin')
+# Output: Indicators validated successfully!
+```
+
+---
+
+## 📁 File Structure
+
+```
+Top50CryptoAnaliyst/
+├── README.md                          # This file
+├── requirements.txt                   # Python dependencies
+├── environment.yml                    # Conda environment
+│
+├── Code/
+│   ├── db_connection.py              # PostgreSQL connection
+│   ├── load_to_database.py           # Load CSV to database
+│   ├── kraken_api_client.py          # Kraken API wrapper
+│   └── pulldata.py                   # Data fetching utilities
+│
+├── data/
+│   ├── interim/                      # Cleaned data (14 CSVs)
+│   │   ├── aave_cleaned.csv
+│   │   ├── bitcoin_cleaned.csv
+│   │   └── ... (14 total)
+│   ├── processed/                    # Data with indicators (14 CSVs, 20 cols)
+│   │   ├── avalanche_processed.csv
+│   │   ├── bitcoin_processed.csv
+│   │   └── ... (14 total)
+│   └── model_data/
+│       ├── Train/
+│       └── Test/
+│
+├── notebooks/
+│   ├── DataWrangling.ipynb
+│   ├── EDA.ipynb
+│   ├── Preprocessing.ipynb
+│   ├── Model.ipynb
+│   ├── UpdateData.ipynb              # Step 8: Create indicators
+│   └── helpers/
+│       └── indicators_helper.py      # Indicator functions (REUSABLE)
+│
+├── models/
+│   └── linear_regression/            # Trained models (15 cryptos)
+│       ├── bitcoin_model.pkl
+│       └── ...
+│
+├── reports/
+│   ├── BACKFILL_LOG.md               # Phase 0.5 completion
+│   ├── MODELING_SUMMARY.md           # Phase 0 results
+│   ├── LINEAR_REGRESSION_PERFORMANCE_REPORT.md
+│   └── figures/
+│
+├── sql/
+│   ├── init.sql                      # User & database creation
+│   └── create_tables.sql             # Table definitions
+│
+├── .checklist/
+│   ├── Devolment.md                  # Main TODO (UPDATED ✅)
+│   └── phases/
+│
+├── .env                              # Environment variables (git ignored)
+├── .gitignore                        # Git ignore rules
+└── docker-compose.yml                # Docker PostgreSQL setup (optional)
+```
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables (`.env`)
+```env
+DATABASE_URL=postgresql://postgres:Tanman6586!@127.0.0.1:5432/crypto_predictions
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=Tanman6586!
+DB_NAME=crypto_predictions
+```
+
+### Python Libraries (in `requirements.txt`)
+```
+pandas==1.5.0
+numpy==1.23.0
+scikit-learn==1.1.0
+sqlalchemy==1.4.0
+psycopg2-binary==2.9.0
+jupyter==1.0.0
+requests==2.28.0
+```
+
+---
+
+## 📈 Model Performance Summary
+
+### Linear Regression Results (Phase 0)
+- **Bitcoin:** R² = 99.97%, MAPE = 0.54%, Dir.Acc = 91.52%
+- **Ethereum:** R² = 99.93%, MAPE = 2.15%, Dir.Acc = 90.32%
+- **Solana:** R² = 99.91%, MAPE = 1.89%, Dir.Acc = 88.74%
+- **Average (14 cryptos):** R² = 97.2%, Dir.Acc = 90.3%
+
+**Why Linear Regression?**
+- ✅ 99.97% R² on Bitcoin
+- ✅ Fast inference (milliseconds)
+- ✅ Interpretable coefficients
+- ✅ Outperformed tree-based models
+- ✅ Production-ready and stable
+
+See [MODELING_SUMMARY.md](reports/MODELING_SUMMARY.md) for detailed results.
+
+---
+
+## 🎯 Next Steps (Phases 1-3)
+
+### Phase 1: Live Data Ingestion
+```python
+# Fetch current prices from Kraken API
+# Update database every 1-5 minutes
+# Store in 'prices' table with current timestamp
+```
+
+### Phase 2: Automated Retraining
+```python
+# Weekly model retraining
+# Compare new vs. old performance
+# Auto-update if improvement > 1%
+# Version tracking
+```
+
+### Phase 3: Real-time Predictions
+```python
+# Load trained models
+# Generate price predictions
+# Store with confidence scores
+# Audit trail for all predictions
+```
+
+---
+
+## 🐛 Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Database connection failed | Use IPv4 (127.0.0.1), verify PostgreSQL running |
+| Password authentication failed | Check `.env` password matches PostgreSQL setup |
+| No module named 'Code' | Run Python from project root, activate conda |
+| Data not loading | Verify CSV files in `data/processed/`, check INSERT privileges |
+| Indicators not calculated | Run `notebooks/UpdateData.ipynb` or use `indicators_helper.py` |
+
+---
+
+## 📊 Key Metrics
+
+### Data Quality Metrics
+- ✅ 14/14 cryptocurrencies loaded
+- ✅ 0 validation errors
+- ✅ 100% data completeness
+- ✅ 37,464 records verified
+
+### Database Metrics
+- ✅ Connection pooling: 10 connections
+- ✅ Query indexes: 7 (cryptocurrency, timestamp, composite)
+- ✅ Average query time: < 50ms
+- ✅ Data integrity: UNIQUE constraints on (crypto, timestamp)
+
+---
+
+## 📚 Documentation Files
+
+- **README.md** - You are here!
+- **reports/BACKFILL_LOG.md** - Phase 0.5 details
+- **reports/MODELING_SUMMARY.md** - Model performance
+- **Code/db_connection.py** - Database code docs
+- **notebooks/helpers/indicators_helper.py** - Indicator formulas
+
+---
+
+## 🔐 Security Notes
+
+- ✅ `.env` is git-ignored (contains password)
+- ✅ PostgreSQL user: postgres (localhost only)
+- ✅ Database on 127.0.0.1 (IPv4, avoid IPv6 auth issues)
+- ✅ ProgramData owned by elevated account
+- ✅ Never commit credentials to Git
+
+---
+
+## 📞 Support & Questions
+
+**For database issues:** Check `Code/db_connection.py`  
+**For data:** See `data/processed/` CSVs or query database  
+**For indicators:** Review `notebooks/helpers/indicators_helper.py`  
+**For models:** See `reports/MODELING_SUMMARY.md`  
+
+---
+
+**Last Updated:** May 1, 2026  
+**Phase Status:** 0.5 ✅ | 1.5 ✅ | 1 🔄 In Progress
+
 
 ---
 

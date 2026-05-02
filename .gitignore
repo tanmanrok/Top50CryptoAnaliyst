@@ -1,6 +1,12 @@
 # IDE
 .vscode/
 .checklist/
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+
 # Data
 /data/
 
@@ -149,12 +155,106 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# ============================================
+# Docker & Database
+# ============================================
+# Docker volumes and data (persistent data storage)
+postgres_data/
+docker_volumes/
+
+# Database backups
+*.sql
+*.sql.gz
+backup/
+backups/
+
+# ============================================
+# OS-specific files
+# ============================================
+Thumbs.db
+*.bak
+*.tmp
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ============================================
+# IDE & Editor files
+# ============================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ============================================
+# Project-specific files
+# ============================================
+# Large model files (uncomment if models shouldn't be tracked)
+# models/
+# *.pkl
+# *.joblib
+# *.h5
+
+# Logs
+logs/
+*.log
+*.log.*
+run.log
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Cache files
+.cache/
+*.cache
+
+# OS lock files
+.~*
+.lock
+
+# ============================================
+# Sensitive/Local files (crypto project specific)
+# ============================================
+# API keys and credentials (extra safety)
+*.key
+*.pem
+credentials.json
+secrets.json
+config.local.json
+
+# Local notebooks for experimentation (optional - uncomment to ignore)
+# scratch/
+# experiments/
+
+# Database connection strings (local testing)
+db_config.ini
+
+# ============================================
+# Optional: Keep but ignore changes
+# ============================================
+# If you want to commit these but ignore changes:
+# data/processed/
+# reports/
 
 # Spyder project settings
 .spyderproject
