@@ -282,11 +282,11 @@ Top50CryptoAnaliyst/
 
 ### Environment Variables (`.env`)
 ```env
-DATABASE_URL=postgresql://postgres:Tanman6586!@127.0.0.1:5432/crypto_predictions
+DATABASE_URL=postgresql://postgres:'PASSWORD'@127.0.0.1:5432/crypto_predictions
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=Tanman6586!
+DB_PASSWORD=PASSWORD
 DB_NAME=crypto_predictions
 ```
 
