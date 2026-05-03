@@ -12,7 +12,9 @@ MAINPID=$!
 wait "$MAINPID"
 
 # Now create crypto_user and database
-psql -U postgres -tc "SELECT 1 FROM pg_user WHERE usname = 'crypto_user'" | grep -q 1 || psql -U postgres -c "CREATE USER crypto_user WITH PASSWORD 'crypto_password';"
+# Use environment variables for security - set DB_USER_PASSWORD and DB_PASSWORD in .env
+CRYPTO_USER_PASSWORD="${DB_USER_PASSWORD:-postgres}"
+psql -U postgres -tc "SELECT 1 FROM pg_user WHERE usname = 'crypto_user'" | grep -q 1 || psql -U postgres -c "CREATE USER crypto_user WITH PASSWORD '$CRYPTO_USER_PASSWORD';"
 psql -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'crypto_predictions'" | grep -q 1 || psql -U postgres -c "CREATE DATABASE crypto_predictions OWNER crypto_user;"
 psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE crypto_predictions TO crypto_user;"
 
