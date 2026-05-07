@@ -8,13 +8,13 @@ from pathlib import Path
 import pandas as pd
 import logging
 
-# Add Code directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add Code directory to path (2 levels up from features/)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import modules
-from db_connection import engine
-from compute_features import FeatureComputor, compute_features_from_db
-from live_features_service import LiveFeaturesService, print_feature_summary
+from data.db_connection import engine
+from features.compute_features import FeatureComputor, compute_features_from_db
+from features.live_features_service import LiveFeaturesService, print_feature_summary
 
 logging.basicConfig(
     level=logging.INFO,

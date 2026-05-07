@@ -13,7 +13,7 @@ import json
 from pathlib import Path
 
 # Import feature computation
-from compute_features import FeatureComputor, compute_features_from_db
+from features.compute_features import FeatureComputor, compute_features_from_db
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

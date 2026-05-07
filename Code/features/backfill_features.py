@@ -9,8 +9,8 @@ import logging
 from datetime import datetime
 import pandas as pd
 from sqlalchemy import text
-from db_connection import engine
-from compute_features import FeatureComputor
+from data.db_connection import engine
+from features.compute_features import FeatureComputor
 import sys
 
 # Configure logging
