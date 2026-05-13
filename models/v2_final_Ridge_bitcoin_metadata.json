@@ -1,0 +1,14 @@
+{
+  "model_type": "Ridge",
+  "cryptocurrency": "bitcoin",
+  "training_date": "2026-05-08T15:32:54.773741",
+  "samples_trained": 4206,
+  "data_start_date": "2014-11-05 00:00:00",
+  "data_end_date": "2026-05-07 00:00:00",
+  "features_count": 27,
+  "r2_score": 0.9987053353071881,
+  "rmse": 0.03598144928726338,
+  "mae": 0.019071154115646527,
+  "mape": 6.095760449921535,
+  "alpha": 0.001
+}

@@ -1,0 +1,82 @@
+================================================================================
+MODEL V2 PRODUCTION TRAINING REPORT
+================================================================================
+
+MODEL CONFIGURATION
+--------------------------------------------------------------------------------
+Model Type:             Ridge
+Cryptocurrency:         BITCOIN
+Training Date:          2026-05-08T15:32:54.773741
+
+DATA SUMMARY
+--------------------------------------------------------------------------------
+Total Samples:          4,206
+Feature Count:          27
+Data Start Date:        2014-11-05 00:00:00
+Data End Date:          2026-05-07 00:00:00
+
+PERFORMANCE METRICS
+--------------------------------------------------------------------------------
+R² Score:               0.998705
+RMSE (scaled):          0.035981
+MAE (scaled):           0.019071
+MAPE (unscaled):        6.10%
+
+HYPERPARAMETERS
+--------------------------------------------------------------------------------
+Alpha (regularization): 0.001
+
+FEATURES (27 TOTAL)
+--------------------------------------------------------------------------------
+   1. open
+   2. high
+   3. low
+   4. volume
+   5. sma_5
+   6. sma_10
+   7. sma_20
+   8. sma_50
+   9. ema_12
+  10. ema_26
+  11. macd
+  12. macd_signal
+  13. macd_diff
+  14. rsi_14
+  15. bb_upper_20
+  16. bb_middle_20
+  17. bb_lower_20
+  18. roc_12
+  19. momentum_10
+  20. atr_14
+  21. daily_return
+  22. weekly_return
+  23. monthly_return
+  24. volatility_7
+  25. volatility_30
+  26. day_of_week
+  27. month
+
+USAGE
+--------------------------------------------------------------------------------
+1. Load model and scalers:
+   model = pickle.load(open('v2_final_Ridge_bitcoin.pkl', 'rb'))
+   scaler_X = pickle.load(open('v2_final_scaler_X_bitcoin.pkl', 'rb'))
+   scaler_y = pickle.load(open('v2_final_scaler_y_bitcoin.pkl', 'rb'))
+
+2. Prepare features (27 indicators from today's data)
+   X_today = compute_features(df_prices)  # shape: (1, 27)
+   X_scaled = scaler_X.transform(X_today)
+
+3. Make prediction for tomorrow's close:
+   y_pred_scaled = model.predict(X_scaled)
+   y_pred = scaler_y.inverse_transform(y_pred_scaled)
+   tomorrow_close = y_pred[0]
+
+VALIDATION HISTORY
+--------------------------------------------------------------------------------
+From Phase C (walk-forward validation on 5 time periods):
+  - Average Test R²: 0.9854 ± 0.0048
+  - Average MAPE: 2.63% ± 0.59%
+  - Status: READY FOR PRODUCTION
+
+================================================================================

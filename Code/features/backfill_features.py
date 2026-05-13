@@ -5,13 +5,19 @@ Computes technical and temporal features for ALL historical price data in the da
 Uses minimal lookback window (5 days) to generate features even for early data points.
 """
 
+import sys
+import os
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import logging
 from datetime import datetime
 import pandas as pd
 from sqlalchemy import text
 from data.db_connection import engine
 from features.compute_features import FeatureComputor
-import sys
 
 # Configure logging
 logging.basicConfig(
@@ -127,20 +133,16 @@ def save_features_to_db(cryptocurrency, df_features):
         Number of rows saved
     """
     try:
-        # Debug: Print actual columns in DataFrame
-        logger.info(f"DataFrame columns: {df_features.columns.tolist()}")
+        # Create a working copy and standardize column names to lowercase
+        df_db = df_features.copy()
+        df_db.columns = df_db.columns.str.lower()
+        
+        logger.info(f"DataFrame columns: {df_db.columns.tolist()}")
         
         # Ensure timestamp column exists and is in proper format
-        if 'TIMESTAMP' not in df_features.columns and 'timestamp' not in df_features.columns:
-            logger.error(f"{cryptocurrency}: No timestamp column found. Available: {df_features.columns.tolist()}")
+        if 'timestamp' not in df_db.columns:
+            logger.error(f"{cryptocurrency}: No timestamp column found. Available: {df_db.columns.tolist()}")
             return 0
-        
-        # Create a working copy and standardize column names
-        df_db = df_features.copy()
-        
-        # Rename TIMESTAMP to timestamp if needed
-        if 'TIMESTAMP' in df_db.columns:
-            df_db = df_db.rename(columns={'TIMESTAMP': 'timestamp'})
         
         # Ensure all required columns exist, fill missing ones with None
         required_cols = [

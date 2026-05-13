@@ -12,7 +12,7 @@ import pandas as pd
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Create logs directory BEFORE logging setup
 os.makedirs('logs', exist_ok=True)

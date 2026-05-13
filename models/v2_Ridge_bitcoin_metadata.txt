@@ -1,0 +1,4 @@
+model_type: Ridge
+cryptocurrency: bitcoin
+created_at: 2026-05-08T13:24:53.672651
+performance: {'test_r2': 0.9900355991932361, 'test_rmse': 0.12635177787824128, 'test_mape': 1.8502093749697104}
